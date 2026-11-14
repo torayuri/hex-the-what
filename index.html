@@ -4,332 +4,153 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hex the What</title>
-<meta name="description" content="色を見てカラーコードを当てるゲーム">
 <style>
-  :root {
-    --bg: #f6f5f2;
-    --fg: #1d1d1f;
-    --muted: #6b6b70;
-    --card: #ffffff;
-    --line: #e2e0db;
-    --good: #1f8a4c;
-    --bad: #c4372f;
-    --accent: #1d1d1f;
-  }
+  :root { --bg: #fff; --fg: #000; --muted: #888; }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #141416; --fg: #f2f2f4; --muted: #9a9aa2; --card: #1e1e22;
-      --line: #2e2e34; --good: #4cc27f; --bad: #ff6b60; --accent: #f2f2f4;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #141416; --fg: #f2f2f4; --muted: #9a9aa2; --card: #1e1e22;
-    --line: #2e2e34; --good: #4cc27f; --bad: #ff6b60; --accent: #f2f2f4;
+    :root { --bg: #000; --fg: #fff; --muted: #777; }
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  html, body { margin: 0; }
   body {
-    background: var(--bg); color: var(--fg);
-    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
-    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-    padding: 24px 16px 48px;
+    margin: 0; padding: 40px 16px; background: var(--bg); color: var(--fg);
+    font-family: ui-monospace, Menlo, Consolas, monospace; text-align: center;
   }
-  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-  header { width: 100%; max-width: 520px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-  h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
-  h1 span { color: var(--muted); font-weight: 500; }
-  .stats { font-size: 14px; color: var(--muted); white-space: nowrap; }
-  .stats b { color: var(--fg); }
-  main { width: 100%; max-width: 520px; margin-top: 20px; }
-  .tabs { display: flex; gap: 4px; background: var(--line); padding: 4px; border-radius: 12px; }
-  .tabs button {
-    flex: 1; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px;
-    padding: 8px; border-radius: 9px; cursor: pointer;
+  h1 { font-size: 16px; font-weight: normal; margin: 0 0 24px; }
+  #swatch { width: 200px; height: 200px; margin: 0 auto; }
+  #choices { margin: 24px auto 0; max-width: 300px; }
+  #choices button, #inputArea input, #inputArea button, #next {
+    font: inherit; font-size: 16px; color: var(--fg); background: none;
+    border: 1px solid var(--fg); padding: 8px 12px; margin: 4px; cursor: pointer;
   }
-  .tabs button[aria-selected="true"] { background: var(--card); color: var(--fg); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-  .swatch {
-    margin-top: 16px; width: 100%; aspect-ratio: 4 / 3; border-radius: 20px;
-    border: 1px solid var(--line); transition: background-color .25s;
-    position: relative; overflow: hidden;
-  }
-  .swatch .split { position: absolute; inset: 50% 0 0 0; display: none; }
-  .swatch.compare .split { display: block; }
-  .swatch .tag {
-    position: absolute; left: 12px; font-size: 12px; padding: 3px 8px; border-radius: 6px;
-    background: rgba(0,0,0,.45); color: #fff;
-  }
-  .swatch .tag.top { top: 12px; }
-  .swatch .tag.bottom { bottom: 12px; display: none; }
-  .swatch.compare .tag.bottom { display: block; }
-  .prompt { margin: 18px 0 10px; font-size: 15px; color: var(--muted); text-align: center; }
-  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .choices button {
-    font: 600 18px ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    padding: 16px 8px; border-radius: 12px; border: 1.5px solid var(--line);
-    background: var(--card); color: var(--fg); cursor: pointer; transition: border-color .15s, transform .05s;
-  }
-  .choices button:hover:not(:disabled) { border-color: var(--fg); }
-  .choices button:active:not(:disabled) { transform: scale(.98); }
-  .choices button.correct { border-color: var(--good); color: var(--good); }
-  .choices button.wrong { border-color: var(--bad); color: var(--bad); text-decoration: line-through; }
-  .choices button:disabled { cursor: default; }
-  .input-row { display: flex; gap: 8px; }
-  .input-wrap {
-    flex: 1; min-width: 0; display: flex; align-items: center; border: 1.5px solid var(--line); border-radius: 12px;
-    background: var(--card); padding: 0 14px;
-  }
-  .input-wrap:focus-within { border-color: var(--fg); }
-  .input-wrap span { color: var(--muted); font-size: 20px; }
-  .input-wrap input {
-    flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--fg);
-    font: 600 20px ui-monospace, "SF Mono", Menlo, Consolas, monospace; padding: 14px 4px; text-transform: uppercase;
-  }
-  .btn {
-    border: 0; border-radius: 12px; padding: 0 20px; font: 600 15px inherit; font-family: inherit;
-    background: var(--accent); color: var(--bg); cursor: pointer; min-height: 52px; white-space: nowrap;
-  }
-  .btn:disabled { opacity: .4; cursor: default; }
-  .result { margin-top: 16px; min-height: 24px; text-align: center; font-size: 15px; }
-  .result .big { font-size: 28px; font-weight: 700; display: block; margin-bottom: 4px; }
-  .bars { margin-top: 14px; display: grid; gap: 8px; }
-  .bar { display: grid; grid-template-columns: 18px 1fr 76px; align-items: center; gap: 10px; font-size: 13px; }
-  .bar .track { height: 8px; background: var(--line); border-radius: 4px; position: relative; }
-  .bar .mark { position: absolute; top: -4px; width: 3px; height: 16px; border-radius: 2px; transform: translateX(-50%); }
-  .bar .mark.ans { background: var(--fg); }
-  .bar .mark.you { background: var(--muted); opacity: .8; }
-  .bar .num { text-align: right; color: var(--muted); }
-  .next { margin-top: 18px; width: 100%; display: none; }
-  .next.show { display: block; }
-  .hint { margin-top: 28px; font-size: 13px; color: var(--muted); line-height: 1.7; }
-  .hint summary { cursor: pointer; }
-  footer { margin-top: auto; padding-top: 32px; font-size: 12px; color: var(--muted); }
-  footer button { background: none; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+  #choices button:disabled { cursor: default; color: var(--muted); border-color: var(--muted); }
+  #choices button.correct { color: var(--fg); border-color: var(--fg); font-weight: bold; }
+  #inputArea { margin-top: 24px; }
+  #inputArea input { width: 9em; cursor: text; text-transform: uppercase; }
+  #result { margin-top: 20px; min-height: 1.4em; }
+  #next { margin-top: 12px; }
+  #yours { width: 200px; height: 40px; margin: 0 auto; }
+  p.small { margin-top: 32px; color: var(--muted); font-size: 13px; }
+  a { color: var(--muted); }
 </style>
 </head>
 <body>
-<header>
-  <h1>Hex the What<span>?</span></h1>
-  <div class="stats">スコア <b id="score">0</b> · 連続 <b id="streak">0</b> · ベスト <b id="best">0</b></div>
-</header>
+<h1>hex the what?</h1>
 
-<main>
-  <div class="tabs" role="tablist">
-    <button role="tab" data-mode="choice" aria-selected="true">4択</button>
-    <button role="tab" data-mode="input" aria-selected="false">入力</button>
-  </div>
+<div id="swatch"></div>
+<div id="yours" hidden></div>
 
-  <div class="swatch" id="swatch">
-    <span class="tag top">お題</span>
-    <div class="split" id="split"></div>
-    <span class="tag bottom">あなたの答え</span>
-  </div>
+<div id="choices"></div>
 
-  <p class="prompt" id="prompt">この色のカラーコードは？</p>
+<form id="inputArea" hidden autocomplete="off">
+  #<input id="hexInput" maxlength="6" placeholder="RRGGBB" spellcheck="false" aria-label="カラーコード">
+  <button type="submit">OK</button>
+</form>
 
-  <div id="choiceArea" class="choices"></div>
+<div id="result"></div>
+<button id="next" hidden>next</button>
 
-  <form id="inputArea" class="input-row" hidden autocomplete="off">
-    <div class="input-wrap">
-      <span class="mono">#</span>
-      <input id="hexInput" maxlength="6" placeholder="RRGGBB" spellcheck="false" inputmode="text" aria-label="カラーコード">
-    </div>
-    <button class="btn" id="submitBtn" type="submit" disabled>回答</button>
-  </form>
-
-  <div class="result" id="result"></div>
-  <div class="bars" id="bars"></div>
-  <button class="btn next" id="nextBtn">次へ（Enter）</button>
-
-  <p class="hint" style="margin:10px 0 0;text-align:center" id="legend" hidden>バー：<b>濃い線</b>＝正解 / 薄い線＝あなた</p>
-  <details class="hint">
-    <summary>ヒント：カラーコードの読み方</summary>
-    <p><span class="mono">#RRGGBB</span> は赤・緑・青の強さを 00〜FF（0〜255）で表します。<br>
-    白は <span class="mono">#FFFFFF</span>、黒は <span class="mono">#000000</span>。赤っぽいなら最初の2桁が大きく、
-    くすんだ色は3つの値が近く、暗い色は全体的に小さくなります。<br>
-    入力モードは近さで 0〜100 点。90点以上で連続記録が伸びます。</p>
-  </details>
-</main>
-
-<footer><button id="themeBtn">テーマ切替</button></footer>
+<p class="small">
+  score <span id="score">0</span> / streak <span id="streak">0</span><br><br>
+  <a href="#" id="toggle"></a>
+</p>
 
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  const store = {
-    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
-    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
-  };
-
-  let mode = store.get('htw-mode', 'choice');
-  let score = 0, streak = 0, best = store.get('htw-best', 0);
-  let answer = null, answered = false;
+  let mode = 'choice', score = 0, streak = 0, answer, answered = false;
 
   const rand = n => Math.floor(Math.random() * n);
-  const toHex = ([r, g, b]) => '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
-  const fromHex = h => [0, 2, 4].map(i => parseInt(h.replace('#', '').slice(i, i + 2), 16));
-  const randColor = () => [rand(256), rand(256), rand(256)];
   const clamp = v => Math.max(0, Math.min(255, v));
+  const toHex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+  const fromHex = h => [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
-  // sRGB -> CIELAB for perceptual distance
-  function lab([r, g, b]) {
-    const f = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
-    const [R, G, B] = [f(r), f(g), f(b)];
-    let x = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
-    let y = (R * 0.2126 + G * 0.7152 + B * 0.0722);
-    let z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
-    const g3 = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
-    [x, y, z] = [g3(x), g3(y), g3(z)];
-    return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
-  }
-  const deltaE = (a, b) => { const A = lab(a), B = lab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); };
-
-  // Decoys: some close, some far, so the game is neither trivial nor impossible
   function decoys(base) {
     const out = [];
-    const spread = [rand(2) ? 48 : 80, 96, 140];
-    for (const s of spread) {
-      let c, tries = 0;
-      do {
-        c = base.map(v => clamp(v + rand(s * 2 + 1) - s));
-        tries++;
-      } while ((deltaE(c, base) < 12 || out.some(o => deltaE(o, c) < 12)) && tries < 200);
+    for (const s of [64, 100, 150]) {
+      let c, t = 0;
+      do { c = base.map(v => clamp(v + rand(s * 2 + 1) - s)); t++; }
+      while ((dist(c, base) < 30 || out.some(o => dist(o, c) < 30)) && t < 200);
       out.push(c);
     }
     return out;
   }
 
-  function updateStats() {
-    $('score').textContent = score;
-    $('streak').textContent = streak;
-    $('best').textContent = best;
-  }
-
   function newRound() {
-    answer = randColor();
+    answer = [rand(256), rand(256), rand(256)];
     answered = false;
-    $('swatch').style.backgroundColor = toHex(answer);
-    $('swatch').classList.remove('compare');
-    $('result').innerHTML = '';
-    $('bars').innerHTML = '';
-    $('legend').hidden = true;
-    $('nextBtn').classList.remove('show');
-
+    $('swatch').style.background = toHex(answer);
+    $('yours').hidden = true;
+    $('result').textContent = '';
+    $('next').hidden = true;
     if (mode === 'choice') {
-      const opts = [answer, ...decoys(answer)].sort(() => Math.random() - 0.5);
-      const area = $('choiceArea');
-      area.innerHTML = '';
-      for (const c of opts) {
+      $('choices').innerHTML = '';
+      [answer, ...decoys(answer)].sort(() => Math.random() - 0.5).forEach(c => {
         const b = document.createElement('button');
         b.textContent = toHex(c);
-        b.dataset.hex = toHex(c);
-        b.onclick = () => pickChoice(b);
-        area.appendChild(b);
-      }
+        b.onclick = () => pick(b);
+        $('choices').appendChild(b);
+      });
     } else {
       $('hexInput').value = '';
       $('hexInput').disabled = false;
-      $('submitBtn').disabled = true;
       $('hexInput').focus();
     }
   }
 
-  function finish(ok, pts) {
+  function done(ok, pts, msg) {
     answered = true;
     score += pts;
     streak = ok ? streak + 1 : 0;
-    if (streak > best) { best = streak; store.set('htw-best', best); }
-    updateStats();
-    $('nextBtn').classList.add('show');
-    $('nextBtn').focus();
+    $('score').textContent = score;
+    $('streak').textContent = streak;
+    $('result').textContent = msg;
+    $('next').hidden = false;
+    $('next').focus();
   }
 
-  function pickChoice(btn) {
+  function pick(btn) {
     if (answered) return;
-    const correct = toHex(answer);
-    const ok = btn.dataset.hex === correct;
-    for (const b of $('choiceArea').children) {
+    const correct = toHex(answer), ok = btn.textContent === correct;
+    for (const b of $('choices').children) {
       b.disabled = true;
-      if (b.dataset.hex === correct) b.classList.add('correct');
+      if (b.textContent === correct) b.classList.add('correct');
     }
-    if (!ok) {
-      btn.classList.add('wrong');
-      $('swatch').classList.add('compare');
-      $('split').style.backgroundColor = btn.dataset.hex;
-    }
-    $('result').innerHTML = ok
-      ? `<span class="big" style="color:var(--good)">正解！</span>+10`
-      : `<span class="big" style="color:var(--bad)">ざんねん</span>正解は <b class="mono">${correct}</b>`;
-    finish(ok, ok ? 10 : 0);
+    if (!ok) { $('yours').style.background = btn.textContent; $('yours').hidden = false; }
+    done(ok, ok ? 1 : 0, ok ? 'correct' : 'wrong — ' + correct);
   }
 
-  function submitInput(e) {
+  $('inputArea').onsubmit = e => {
     e.preventDefault();
-    if (answered) { newRound(); return; }
+    if (answered) return newRound();
     const v = $('hexInput').value.trim();
     if (!/^[0-9a-fA-F]{6}$/.test(v)) return;
     const guess = fromHex(v);
-    const d = deltaE(guess, answer);
-    const pts = Math.max(0, Math.round(100 - d * 1.6));
-    const ok = pts >= 90;
+    const pts = Math.max(0, Math.round(100 - dist(guess, answer) / 4.42));
     $('hexInput').disabled = true;
-    $('submitBtn').disabled = true;
-    $('swatch').classList.add('compare');
-    $('split').style.backgroundColor = toHex(guess);
+    $('yours').style.background = toHex(guess);
+    $('yours').hidden = false;
+    done(pts >= 90, pts, pts + '/100 — ' + toHex(answer));
+  };
 
-    const msg = pts === 100 ? 'ぴったり！' : pts >= 90 ? 'お見事！' : pts >= 70 ? 'おしい！' : pts >= 40 ? 'まあまあ' : 'がんばろう';
-    $('result').innerHTML =
-      `<span class="big" style="color:${ok ? 'var(--good)' : pts >= 40 ? 'var(--fg)' : 'var(--bad)'}">${pts}点 · ${msg}</span>` +
-      `正解 <b class="mono">${toHex(answer)}</b> / あなた <span class="mono">${toHex(guess)}</span>`;
-
-    const names = ['R', 'G', 'B'], cols = ['#e5484d', '#30a46c', '#3e63dd'];
-    $('bars').innerHTML = names.map((n, i) => {
-      const a = answer[i], y = guess[i], diff = y - a, h2 = v => v.toString(16).padStart(2, '0').toUpperCase();
-      return `<div class="bar"><b style="color:${cols[i]}">${n}</b>
-        <div class="track" style="background:linear-gradient(90deg, var(--line), ${cols[i]}55)">
-          <div class="mark ans" style="left:${a / 255 * 100}%"></div>
-          <div class="mark you" style="left:${y / 255 * 100}%"></div>
-        </div>
-        <span class="num mono">${h2(a)} / ${h2(y)}${diff === 0 ? ' ✓' : ''}</span></div>`;
-    }).join('');
-    $('legend').hidden = false;
-    finish(ok, pts);
-  }
+  $('hexInput').oninput = e => { e.target.value = e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6); };
+  $('next').onclick = newRound;
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && answered && document.activeElement !== $('next')) { e.preventDefault(); newRound(); }
+    if (mode === 'choice' && !answered && ['1', '2', '3', '4'].includes(e.key)) {
+      const b = $('choices').children[+e.key - 1]; if (b) pick(b);
+    }
+  });
 
   function setMode(m) {
     mode = m;
-    store.set('htw-mode', m);
-    document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.mode === m));
-    $('choiceArea').hidden = m !== 'choice';
+    $('choices').hidden = m !== 'choice';
     $('inputArea').hidden = m !== 'input';
-    $('prompt').textContent = m === 'choice' ? 'この色のカラーコードはどれ？' : 'この色のカラーコードを入力しよう';
-    streak = 0; updateStats();
+    $('toggle').textContent = m === 'choice' ? 'type mode' : 'choice mode';
     newRound();
   }
-
-  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
-  $('hexInput').addEventListener('input', e => {
-    e.target.value = e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
-    $('submitBtn').disabled = e.target.value.length !== 6;
-  });
-  $('inputArea').addEventListener('submit', submitInput);
-  $('nextBtn').onclick = newRound;
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && answered && document.activeElement !== $('nextBtn')) { e.preventDefault(); newRound(); }
-    if (mode === 'choice' && !answered && ['1', '2', '3', '4'].includes(e.key)) {
-      const b = $('choiceArea').children[+e.key - 1]; if (b) pickChoice(b);
-    }
-  });
-  $('themeBtn').onclick = () => {
-    const root = document.documentElement;
-    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-    root.dataset.theme = dark ? 'light' : 'dark';
-    store.set('htw-theme', root.dataset.theme);
-  };
-  const t = store.get('htw-theme', null);
-  if (t) document.documentElement.dataset.theme = t;
-
-  setMode(mode);
+  $('toggle').onclick = e => { e.preventDefault(); setMode(mode === 'choice' ? 'input' : 'choice'); };
+  setMode('choice');
 })();
 </script>
 </body>
