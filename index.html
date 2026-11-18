@@ -33,7 +33,7 @@
   a { color: var(--muted); margin: 0 6px; }
   a.on { color: var(--fg); text-decoration: none; }
   #hexLabel { font-size: 40px; margin: 70px 0; }
-  #colorChoices { margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 260px; }
+  #colorChoices { margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 300px; max-width: 100%; }
   #colorChoices button { border: 0; padding: 0; aspect-ratio: 1; cursor: pointer; position: relative; outline-offset: 3px; }
   #colorChoices button:disabled { cursor: default; opacity: .35; }
   #colorChoices button.correct { opacity: 1; outline: 2px solid var(--fg); }
@@ -80,7 +80,7 @@
 
   function decoys(base) {
     const out = [];
-    for (const s of [64, 100, 150]) {
+    for (const s of [48, 64, 90, 120, 160]) {
       let c, t = 0;
       do { c = base.map(v => clamp(v + rand(s * 2 + 1) - s)); t++; }
       while ((dist(c, base) < 30 || out.some(o => dist(o, c) < 30)) && t < 200);
@@ -175,7 +175,7 @@
   $('next').onclick = newRound;
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && answered && document.activeElement !== $('next')) { e.preventDefault(); newRound(); }
-    if (!answered && ['1', '2', '3', '4'].includes(e.key)) {
+    if (!answered && ['1', '2', '3', '4', '5', '6'].includes(e.key)) {
       if (mode === 'choice') { const b = $('choices').children[+e.key - 1]; if (b) pick(b); }
       if (mode === 'color') { const b = $('colorChoices').children[+e.key - 1]; if (b) pickColor(b); }
     }
