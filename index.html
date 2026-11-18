@@ -26,17 +26,28 @@
   #choices button.correct { color: var(--fg); border-color: var(--fg); font-weight: bold; }
   #inputArea { margin-top: 24px; }
   #inputArea input { width: 9em; cursor: text; text-transform: uppercase; }
-  #result { margin-top: 20px; min-height: 1.4em; }
+  #result { margin-top: 24px; min-height: 1.4em; }
   #next { margin-top: 12px; }
   #yours { width: 200px; height: 40px; margin: 0 auto; }
   p.small { margin-top: 32px; color: var(--muted); font-size: 13px; }
-  a { color: var(--muted); }
+  a { color: var(--muted); margin: 0 6px; }
+  a.on { color: var(--fg); text-decoration: none; }
+  #hexLabel { font-size: 40px; margin: 70px 0; }
+  #colorChoices { margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 260px; }
+  #colorChoices button { border: 0; padding: 0; aspect-ratio: 1; cursor: pointer; position: relative; outline-offset: 3px; }
+  #colorChoices button:disabled { cursor: default; opacity: .35; }
+  #colorChoices button.correct { opacity: 1; outline: 2px solid var(--fg); }
+  #colorChoices button.picked { opacity: 1; }
+  #colorChoices span { position: absolute; left: 0; right: 0; bottom: -1.5em; font: 12px ui-monospace, Menlo, Consolas, monospace; color: var(--fg); }
+  #colorChoices.revealed { row-gap: 30px; }
 </style>
 </head>
 <body>
 <h1>hex the what?</h1>
 
 <div id="swatch"></div>
+<div id="hexLabel" hidden></div>
+<div id="colorChoices" hidden></div>
 <div id="yours" hidden></div>
 
 <div id="choices"></div>
@@ -51,7 +62,9 @@
 
 <p class="small">
   score <span id="score">0</span> / streak <span id="streak">0</span><br><br>
-  <a href="#" id="toggle"></a>
+  <a href="#" data-mode="choice">color → hex</a>
+  <a href="#" data-mode="input">type hex</a>
+  <a href="#" data-mode="color">hex → color</a>
 </p>
 
 <script>
@@ -91,6 +104,18 @@
         b.onclick = () => pick(b);
         $('choices').appendChild(b);
       });
+    } else if (mode === 'color') {
+      $('hexLabel').textContent = toHex(answer);
+      const area = $('colorChoices');
+      area.innerHTML = '';
+      area.classList.remove('revealed');
+      [answer, ...decoys(answer)].sort(() => Math.random() - 0.5).forEach(c => {
+        const b = document.createElement('button');
+        b.style.background = b.dataset.hex = toHex(c);
+        b.setAttribute('aria-label', 'choice');
+        b.onclick = () => pickColor(b);
+        area.appendChild(b);
+      });
     } else {
       $('hexInput').value = '';
       $('hexInput').disabled = false;
@@ -120,6 +145,19 @@
     done(ok, ok ? 1 : 0, ok ? 'correct' : 'wrong — ' + correct);
   }
 
+  function pickColor(btn) {
+    if (answered) return;
+    const correct = toHex(answer), ok = btn.dataset.hex === correct;
+    $('colorChoices').classList.add('revealed');
+    for (const b of $('colorChoices').children) {
+      b.disabled = true;
+      b.innerHTML = `<span>${b.dataset.hex}</span>`;
+      if (b.dataset.hex === correct) b.classList.add('correct');
+    }
+    btn.classList.add('picked');
+    done(ok, ok ? 1 : 0, ok ? 'correct' : 'wrong');
+  }
+
   $('inputArea').onsubmit = e => {
     e.preventDefault();
     if (answered) return newRound();
@@ -137,8 +175,9 @@
   $('next').onclick = newRound;
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && answered && document.activeElement !== $('next')) { e.preventDefault(); newRound(); }
-    if (mode === 'choice' && !answered && ['1', '2', '3', '4'].includes(e.key)) {
-      const b = $('choices').children[+e.key - 1]; if (b) pick(b);
+    if (!answered && ['1', '2', '3', '4'].includes(e.key)) {
+      if (mode === 'choice') { const b = $('choices').children[+e.key - 1]; if (b) pick(b); }
+      if (mode === 'color') { const b = $('colorChoices').children[+e.key - 1]; if (b) pickColor(b); }
     }
   });
 
@@ -146,10 +185,13 @@
     mode = m;
     $('choices').hidden = m !== 'choice';
     $('inputArea').hidden = m !== 'input';
-    $('toggle').textContent = m === 'choice' ? 'type mode' : 'choice mode';
+    $('swatch').hidden = m === 'color';
+    $('hexLabel').hidden = $('colorChoices').hidden = m !== 'color';
+    document.querySelectorAll('[data-mode]').forEach(a => a.classList.toggle('on', a.dataset.mode === m));
+    streak = 0; $('streak').textContent = 0;
     newRound();
   }
-  $('toggle').onclick = e => { e.preventDefault(); setMode(mode === 'choice' ? 'input' : 'choice'); };
+  document.querySelectorAll('[data-mode]').forEach(a => a.onclick = e => { e.preventDefault(); setMode(a.dataset.mode); });
   setMode('choice');
 })();
 </script>
